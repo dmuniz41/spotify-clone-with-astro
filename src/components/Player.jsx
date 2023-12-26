@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRef } from "react";
 import { usePlayerStore } from "../store/playerStore";
+import { Slider } from "../components/ui/slider";
 
 export const Pause = ({ className }) => (
   <svg className={className} role="img" height="16" width="16" aria-hidden="true" viewBox="0 0 16 16">
@@ -42,8 +43,46 @@ const CurrentSong = ({ image, title, artists }) => {
   );
 };
 
+const VolumeControl = () => {
+  const setVolume = usePlayerStore((state) => state.setVolume);
+  const volume = usePlayerStore((state) => state.volume);
+  const previousVolumeRef = useRef(volume);
+
+  const isVolumeSilenced = volume < 0.1;
+
+  const handleClickVolume = () => {
+    if (isVolumeSilenced) {
+      setVolume(previousVolumeRef.current);
+    } else {
+      previousVolumeRef.current = volume;
+      setVolume(0);
+    }
+  };
+
+  return (
+    <div className="flex justify-center gap-x-2">
+      <button className="opacity-70 hover:opacity-100 transition" onClick={handleClickVolume}>
+          {isVolumeSilenced ? <VolumeSilence /> : <Volume />}
+      </button>
+      <Slider
+        defaultValue={[50]}
+        max={100}
+        min={0}
+        step={1}
+        className="w-[100px]"
+        value={[volume * 100]}
+        onValueChange={(value) => {
+          const [newVolume] = value;
+          const volumeValue = newVolume / 100;
+          setVolume(volumeValue);
+        }}
+      />
+    </div>
+  );
+};
+
 export function Player() {
-  const { currentMusic, isPlaying, setIsPlaying } = usePlayerStore((state) => state);
+  const { currentMusic, isPlaying, setIsPlaying, volume } = usePlayerStore((state) => state);
   const audioRef = useRef();
 
   useEffect(() => {
@@ -51,10 +90,15 @@ export function Player() {
   }, [isPlaying]);
 
   useEffect(() => {
+    audioRef.current.volume = volume;
+  }, [volume]);
+
+  useEffect(() => {
     const { song, songs, playlist } = currentMusic;
     if (song) {
       const src = `/music/${playlist?.id}/0${song.id}.mp3`;
       audioRef.current.src = src;
+      audioRef.current.volume = volume;
       audioRef.current.play();
     }
   }, [currentMusic]);
@@ -73,9 +117,11 @@ export function Player() {
           <button className="bg-white rounded-full p-2 " onClick={handleClick}>
             {isPlaying ? <Pause /> : <Play />}
           </button>
-          <audio ref={audioRef}/>
+          <audio ref={audioRef} />
         </div>
-      {/* <div className="grid place-content-center"></div> */}
+      </div>
+      <div className="grid place-content-center">
+        <VolumeControl />
       </div>
     </div>
   );
