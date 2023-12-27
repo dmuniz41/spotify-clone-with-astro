@@ -62,13 +62,12 @@ const VolumeControl = () => {
   return (
     <div className="flex justify-center gap-x-2">
       <button className="opacity-70 hover:opacity-100 transition" onClick={handleClickVolume}>
-          {isVolumeSilenced ? <VolumeSilence /> : <Volume />}
+        {isVolumeSilenced ? <VolumeSilence /> : <Volume />}
       </button>
       <Slider
         defaultValue={[50]}
         max={100}
         min={0}
-        step={1}
         className="w-[100px]"
         value={[volume * 100]}
         onValueChange={(value) => {
@@ -77,6 +76,49 @@ const VolumeControl = () => {
           setVolume(volumeValue);
         }}
       />
+    </div>
+  );
+};
+
+const SongControl = ({ audio }) => {
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    audio.current.addEventListener("timeupdate", handleTimeUpdate);
+
+    return () => {
+      audio.current.removeEventListener("timeupdate", handleTimeUpdate);
+    };
+  }, []);
+
+  const formatTime = (time) => {
+    if (time == null) return `0:00`;
+    const seconds = Math.floor(time % 60);
+    const minutes = Math.floor(time / 60);
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const handleTimeUpdate = () => {
+    setCurrentTime(audio.current.currentTime);
+  };
+
+  const duration = audio?.current?.duration ?? 0;
+
+  return (
+    <div className="flex gap-x-3 pt-2">
+      <span className="opacity-50 w-12 text-right">{formatTime(currentTime)}</span>
+      <Slider
+        defaultValue={[0]}
+        max={audio?.current?.duration ?? 0}
+        min={0}
+        className="w-[500px]"
+        value={[currentTime]}
+        onValueChange={(value) => {
+          audio.current.currentTime = value;
+        }}
+      />
+      <span className="opacity-50 w-12">{duration ? formatTime(duration) : null}</span>
     </div>
   );
 };
@@ -117,6 +159,7 @@ export function Player() {
           <button className="bg-white rounded-full p-2 " onClick={handleClick}>
             {isPlaying ? <Pause /> : <Play />}
           </button>
+          <SongControl audio={audioRef} />
           <audio ref={audioRef} />
         </div>
       </div>
